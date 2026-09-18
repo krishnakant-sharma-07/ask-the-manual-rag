@@ -4,7 +4,7 @@ A retrieval engine that indexes an SOP PDF alongside a training video and links 
 
 Built as a technical proof of concept, tested end to end against a real 15-page structural repair methodology manual (corrosion treatment, injection grouting, termite infestation, steel retrofitting).
 
-**[Try the live demo →](#)** *(link goes here once GitHub Pages is set up — see below)*
+**[Try the live demo →](https://krishnakant-sharma-07.github.io/ask-the-manual-rag/)**
 
 ---
 
