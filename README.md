@@ -68,4 +68,4 @@ To try the interactive demo, just open `web/demo.html` directly in a browser —
 
 ## Author
 
-Krishnakant Sharma — [LinkedIn](https://linkedin.com/in/krishnakant-sharma-33153626b) · [Email](krish511sharma@gmail.com)
+Krishnakant Sharma — [LinkedIn](https://linkedin.com/in/krishnakant-sharma-33153626b) · [krish511sharma@gmail.com]()
