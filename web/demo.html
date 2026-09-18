@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ask the Manual — Timestamp-Linked Engine</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #14181c;
+    --panel: #1b2025;
+    --panel-2: #20262c;
+    --line: #2b323a;
+    --text: #e9e6dd;
+    --text-dim: #8d97a0;
+    --amber: #e8a33d;
+    --amber-dim: #7a5a25;
+    --green: #6fcf97;
+    --radius: 3px;
+  }
+  :root:not([data-theme="light"]) { color-scheme: dark; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #14181c; --panel: #1b2025; --panel-2: #20262c;
+      --line: #2b323a; --text: #e9e6dd; --text-dim: #8d97a0;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-position: -1px -1px;
+    background-color: var(--bg);
+  }
+  .wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 56px 24px 80px;
+  }
+  header { margin-bottom: 36px; }
+  .kicker {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    color: var(--amber);
+    letter-spacing: 0.02em;
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-size: 30px;
+    line-height: 1.2;
+    font-weight: 600;
+    margin: 0 0 12px;
+    max-width: 20ch;
+  }
+  header p {
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 58ch;
+    margin: 0;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  #q {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px;
+    padding: 13px 14px;
+    outline: none;
+  }
+  #q:focus { border-color: var(--amber); }
+  #q::placeholder { color: var(--text-dim); }
+  #ask {
+    background: var(--amber);
+    color: #1a1300;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 0 22px;
+    cursor: pointer;
+  }
+  #ask:hover { background: #f0ae4a; }
+  #ask:active { transform: translateY(1px); }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 40px;
+  }
+  .chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 7px 11px;
+    cursor: pointer;
+  }
+  .chip:hover { border-color: var(--amber-dim); color: var(--text); }
+
+  .result { display: none; }
+  .result.visible { display: block; }
+
+  .panes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 720px) {
+    .panes { grid-template-columns: 1fr; }
+  }
+
+  .pane {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .pane-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    margin: 0 0 14px;
+  }
+
+  #answer-text {
+    font-size: 15.5px;
+    line-height: 1.65;
+    margin: 0 0 18px;
+  }
+  .citation {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+    font-size: 13.5px;
+    color: var(--text-dim);
+  }
+  .citation .page-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--amber);
+    background: rgba(232,163,61,0.1);
+    border: 1px solid var(--amber-dim);
+    border-radius: var(--radius);
+    padding: 3px 8px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .confidence {
+    margin-top: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--green);
+  }
+
+  canvas#feed {
+    width: 100%;
+    aspect-ratio: 16/10;
+    background: #0e1114;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    display: block;
+  }
+  .readout {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .readout strong { color: var(--text); font-weight: 500; }
+
+  .timeline {
+    position: relative;
+    height: 30px;
+    margin-top: 6px;
+    cursor: pointer;
+  }
+  .timeline .track {
+    position: absolute;
+    top: 13px;
+    left: 0; right: 0;
+    height: 3px;
+    background: var(--line);
+    border-radius: 2px;
+  }
+  .timeline .match {
+    position: absolute;
+    top: 13px;
+    height: 3px;
+    background: var(--amber-dim);
+    border-radius: 2px;
+  }
+  .timeline .playhead {
+    position: absolute;
+    top: 6px;
+    width: 2px;
+    height: 17px;
+    background: var(--amber);
+  }
+  .timeline .playhead::after {
+    content: '';
+    position: absolute;
+    top: -4px; left: -3px;
+    width: 8px; height: 8px;
+    background: var(--amber);
+    border-radius: 50%;
+  }
+  .feed-note {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .empty {
+    color: var(--text-dim);
+    font-size: 14px;
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kicker">SOP + training video, one index</p>
+    <h1>Ask the manual. Watch the exact moment.</h1>
+    <p>Retrieval that returns a text answer, the SOP page it came from, and a video player already seeked to the second that step is demonstrated — instead of a paragraph and a 40-minute video to scrub through.</p>
+  </header>
+
+  <div class="search-row">
+    <input id="q" type="text" placeholder="How do I treat exposed corroded reinforcement?">
+    <button id="ask">Ask</button>
+  </div>
+  <div class="chips">
+    <span class="chip" data-q="How do I treat exposed corroded reinforcement?">exposed corroded reinforcement</span>
+    <span class="chip" data-q="How do I fix dampness with injection grouting?">injection grouting for dampness</span>
+    <span class="chip" data-q="How do I deal with termite infestation?">termite infestation</span>
+    <span class="chip" data-q="How do I treat corrosion on steel members?">corrosion on steel members</span>
+  </div>
+
+  <div id="empty" class="empty">Type a question, or try one of the steps above.</div>
+
+  <div id="result" class="result">
+    <div class="panes">
+      <div class="pane">
+        <p class="pane-label">answer</p>
+        <p id="answer-text"></p>
+        <div class="citation">
+          <span class="page-badge" id="page-badge"></span>
+          <span id="section-text"></span>
+        </div>
+        <div class="confidence" id="confidence"></div>
+      </div>
+
+      <div class="pane">
+        <p class="pane-label">training video — seeked automatically</p>
+        <canvas id="feed" width="480" height="300"></canvas>
+        <div class="readout">
+          <span>playhead</span>
+          <strong id="time-readout">00:00.0</strong>
+        </div>
+        <div class="timeline" id="timeline">
+          <div class="track"></div>
+          <div class="match" id="match-range"></div>
+          <div class="playhead" id="playhead"></div>
+        </div>
+        <p class="feed-note">Footage simulated for this demo — a production build seeks a real recording via the HTML5 Media Seek API, using the exact millisecond range stored on the matched node.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Synthetic index: what ingest.py would have produced -----------
+// Each node mirrors the dual-address node from the architecture doc:
+// a page citation AND a video timestamp range, linked at index time.
+const NODES = [
+  {
+    keywords: ["corroded", "corrosion", "reinforcement", "spalling", "exposed", "rebar", "rust"],
+    answer: "Chip back the loose concrete and clean the exposed reinforcement with mechanical wire-brushing and a rust remover. Protect it with two coats of epoxy-based zinc primer before making good the surface.",
+    page: 1, section: "Annexure 4A — Exposed Reinforcement & Spalling of Concrete",
+    videoStartMs: 15000, videoEndMs: 23100,
+    confidence: 0.97,
+  },
+  {
+    keywords: ["injection", "grouting", "dampness", "crack", "water", "moisture", "wall", "slab"],
+    answer: "Seal cracks on both faces with epoxy mortar, drill 12mm holes at the marked points on a 150–300mm grid, fix PVC/MS nozzles, and inject Moisture Insensitive Epoxy Resin Grout before sealing and curing.",
+    page: 2, section: "Annexure 4B — Injection Grouting for Dampness",
+    videoStartMs: 30000, videoEndMs: 37500,
+    confidence: 0.91,
+  },
+  {
+    keywords: ["termite", "white", "ants", "infestation", "wood", "cellulose"],
+    answer: "Eliminate the moisture source drawing termites in — leaking plumbing, damp terraces, cracked plaster — keep the attic and crawl space ventilated, and treat with an anti-termite chemical such as Rentokil.",
+    page: 11, section: "Annexure 4M — Termite Infestation / White Ants",
+    videoStartMs: 46000, videoEndMs: 52800,
+    confidence: 0.94,
+  },
+  {
+    keywords: ["steel", "corrosion", "bolts", "structural", "members", "plates", "rust"],
+    answer: "Remove rust and paint from the metal surface with a wire brush, dust off the residue, apply red oxide primer, and finish with two coats of enamel paint. Replace any bolts whose threads have degraded.",
+    page: 13, section: "Annexure 4P — Treatment for Corrosion of Steel Members / Plates",
+    videoStartMs: 58000, videoEndMs: 65200,
+    confidence: 0.88,
+  },
+];
+const VIDEO_TOTAL_MS = 70000;
+
+function score(question, node) {
+  const q = question.toLowerCase();
+  let s = 0;
+  for (const kw of node.keywords) if (q.includes(kw)) s++;
+  return s;
+}
+
+function bestMatch(question) {
+  let best = null, bestScore = 0;
+  for (const node of NODES) {
+    const s = score(question, node);
+    if (s > bestScore) { bestScore = s; best = node; }
+  }
+  return best || NODES[0];
+}
+
+// ---- Canvas "feed" — simple schematic that reacts to playhead -------
+const canvas = document.getElementById('feed');
+const ctx = canvas.getContext('2d');
+
+function drawFrame(progress) {
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0e1114';
+  ctx.fillRect(0, 0, w, h);
+
+  // schematic grid
+  ctx.strokeStyle = 'rgba(139,148,157,0.12)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 24) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+  for (let y = 0; y < h; y += 24) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+
+  // pipe
+  ctx.strokeStyle = '#3a4148';
+  ctx.lineWidth = 10;
+  ctx.beginPath();
+  ctx.moveTo(0, h * 0.55);
+  ctx.lineTo(w * 0.38, h * 0.55);
+  ctx.moveTo(w * 0.62, h * 0.55);
+  ctx.lineTo(w, h * 0.55);
+  ctx.stroke();
+
+  // valve body
+  const cx = w * 0.5, cy = h * 0.55, r = 34;
+  ctx.fillStyle = '#242b31';
+  ctx.strokeStyle = '#e8a33d';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // rotating wheel — rotation driven by progress within this step
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(progress * Math.PI * 1.4);
+  ctx.strokeStyle = '#e8a33d';
+  ctx.lineWidth = 4;
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(0, -r + 6);
+    ctx.lineTo(0, r - 6);
+    ctx.rotate(Math.PI / 4);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  // pressure gauge, top right, needle eases toward zero as progress -> 1
+  const gx = w * 0.82, gy = h * 0.24, gr = 26;
+  ctx.strokeStyle = '#565f68';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(gx, gy, gr, Math.PI * 0.75, Math.PI * 2.25);
+  ctx.stroke();
+  const needleAngle = Math.PI * 0.75 + (1 - progress) * Math.PI * 1.5;
+  ctx.strokeStyle = '#6fcf97';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(gx, gy);
+  ctx.lineTo(gx + Math.cos(needleAngle) * (gr - 6), gy + Math.sin(needleAngle) * (gr - 6));
+  ctx.stroke();
+  ctx.fillStyle = '#8d97a0';
+  ctx.font = '10px IBM Plex Mono, monospace';
+  ctx.fillText('PSI', gx - 10, gy + gr + 14);
+
+  // caption strip
+  ctx.fillStyle = 'rgba(20,24,28,0.85)';
+  ctx.fillRect(0, h - 26, w, 26);
+  ctx.fillStyle = '#8d97a0';
+  ctx.font = '11px IBM Plex Mono, monospace';
+  ctx.fillText('SIMULATED FEED — STRUCTURAL REPAIR SITE', 10, h - 9);
+}
+
+drawFrame(0);
+
+// ---- Playback: animate playhead from matched start to end ----------
+let animId = null;
+
+function fmt(ms) {
+  const s = ms / 1000;
+  const m = Math.floor(s / 60);
+  const rem = (s - m * 60).toFixed(1);
+  return `${String(m).padStart(2,'0')}:${String(rem).padStart(4,'0')}`;
+}
+
+function playSegment(startMs, endMs) {
+  if (animId) cancelAnimationFrame(animId);
+  const timeline = document.getElementById('timeline');
+  const playhead = document.getElementById('playhead');
+  const readout = document.getElementById('time-readout');
+  const width = timeline.clientWidth;
+  const duration = endMs - startMs;
+  const t0 = performance.now();
+
+  function step(now) {
+    const elapsed = Math.min((now - t0) * 4, duration); // 4x speed for demo pacing
+    const currentMs = startMs + elapsed;
+    const overallProgress = currentMs / VIDEO_TOTAL_MS;
+    const localProgress = elapsed / duration;
+
+    playhead.style.left = `${overallProgress * width}px`;
+    readout.textContent = fmt(currentMs);
+    drawFrame(localProgress);
+
+    if (elapsed < duration) {
+      animId = requestAnimationFrame(step);
+    }
+  }
+  animId = requestAnimationFrame(step);
+}
+
+// ---- Render a result --------------------------------------------------
+function renderResult(question) {
+  const node = bestMatch(question);
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('result').classList.add('visible');
+
+  document.getElementById('answer-text').textContent = node.answer;
+  document.getElementById('page-badge').textContent = `page ${node.page}`;
+  document.getElementById('section-text').textContent = node.section;
+  document.getElementById('confidence').textContent = `matched at confidence ${node.confidence.toFixed(2)}`;
+
+  const timeline = document.getElementById('timeline');
+  const matchEl = document.getElementById('match-range');
+  requestAnimationFrame(() => {
+    const width = timeline.clientWidth;
+    const left = (node.videoStartMs / VIDEO_TOTAL_MS) * width;
+    const matchWidth = ((node.videoEndMs - node.videoStartMs) / VIDEO_TOTAL_MS) * width;
+    matchEl.style.left = `${left}px`;
+    matchEl.style.width = `${matchWidth}px`;
+    playSegment(node.videoStartMs, node.videoEndMs);
+  });
+}
+
+document.getElementById('ask').addEventListener('click', () => {
+  const q = document.getElementById('q').value.trim();
+  if (q) renderResult(q);
+});
+document.getElementById('q').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('ask').click();
+});
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.getElementById('q').value = chip.dataset.q;
+    renderResult(chip.dataset.q);
+  });
+});
+</script>
+</body>
+</html>
